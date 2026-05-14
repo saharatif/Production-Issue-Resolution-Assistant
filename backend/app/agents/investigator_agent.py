@@ -45,6 +45,8 @@ Respond with ONLY valid JSON — no markdown fences, no prose outside the JSON o
 
 Required schema:
 {
+  "analysis_source": "openai_llm",
+  "model": "gpt-4o-mini",
   "verdict": "Stabilize" | "Investigate" | "Prevent Recurrence",
   "root_cause_hypotheses": [
     {
@@ -69,6 +71,7 @@ Required schema:
 
 Rules:
 - confidence_breakdown values must sum to exactly 1.0
+- confidence is calculated by you from the scanner anomaly strength and KB evidence quality
 - Use "Stabilize" for HIGH or CRITICAL severity; "Investigate" for MEDIUM; "Prevent Recurrence" for recurring patterns
 - Address ALL affected lines and machines listed under "All affected lines and machines" — do not focus on just one
 - Every recommendation and evidence item must be specific to the anomalies detected — no generic text
@@ -84,7 +87,12 @@ def _log(event: str, **fields: Any) -> None:
         print(json.dumps({"event": event, **fields}, sort_keys=True))
 
 
-def _build_kb_context(line_id: str) -> list[dict[str, Any]]:
+def _build_kb_context(
+    anomalies_or_line_id: list[dict[str, Any]] | str,
+    line_id: str | None = None,
+) -> list[dict[str, Any]]:
+    if line_id is None:
+        line_id = str(anomalies_or_line_id)
     seen: set[str] = set()
     total = 0
     context: list[dict[str, Any]] = []
@@ -115,6 +123,8 @@ def _primary_hypothesis(scanner_result: dict[str, Any]) -> str:
 
 def _fallback_result(scanner_result: dict[str, Any], retrieved_context: list[dict[str, Any]]) -> dict[str, Any]:
     return {
+        "analysis_source": "deterministic_fallback",
+        "model": None,
         "verdict": "Stabilize" if scanner_result.get("severity") in ("HIGH", "CRITICAL") else "Investigate",
         "root_cause_hypotheses": [
             {
@@ -155,6 +165,7 @@ async def investigator_node(state: dict[str, Any]) -> dict[str, Any]:
 
     retrieved_context = _build_kb_context(line_id)
     result = None
+    llm_used = False
 
     if settings.openai_api_key:
         try:
@@ -194,12 +205,20 @@ async def investigator_node(state: dict[str, Any]) -> dict[str, Any]:
                 [SystemMessage(content=SYSTEM_PROMPT), HumanMessage(content=user_msg)],
             )
             result = parse_json_response(raw)
-            # ensure confidence breakdown sums to 1.0
-            breakdown = result.get("root_cause_hypotheses", [{}])[0].get("confidence_breakdown", {})
-            total = sum(breakdown.values())
-            if abs(total - 1.0) > 0.01:
-                for key in breakdown:
-                    breakdown[key] = round(breakdown[key] / total, 4)
+            result["analysis_source"] = "openai_llm"
+            result["model"] = "gpt-4o-mini"
+            llm_used = True
+
+            # Keep every LLM-generated confidence breakdown normalized for UI math.
+            for hypothesis in result.get("root_cause_hypotheses", []):
+                breakdown = hypothesis.get("confidence_breakdown", {})
+                total = sum(float(value) for value in breakdown.values())
+                if total <= 0:
+                    hypothesis["confidence_breakdown"] = CONFIDENCE_BREAKDOWN
+                    continue
+                if abs(total - 1.0) > 0.01:
+                    for key in breakdown:
+                        breakdown[key] = round(float(breakdown[key]) / total, 4)
         except Exception as exc:
             _log("investigator.llm_error", run_id=state["run_id"], error=str(exc))
             result = None
@@ -212,6 +231,6 @@ async def investigator_node(state: dict[str, Any]) -> dict[str, Any]:
         run_id=state["run_id"],
         verdict=result.get("verdict"),
         context_count=len(retrieved_context),
-        used_llm=settings.openai_api_key != "",
+        used_llm=llm_used,
     )
     return {**state, "retrieved_context": retrieved_context, "investigator_result": result}

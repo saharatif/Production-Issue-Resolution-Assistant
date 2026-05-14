@@ -32,6 +32,8 @@ class RootCauseHypothesis(BaseModel):
 
 
 class InvestigatorOutput(BaseModel):
+    analysis_source: str | None = None
+    model: str | None = None
     verdict: Literal["Stabilize", "Investigate", "Prevent Recurrence"]
     root_cause_hypotheses: list[RootCauseHypothesis]
     recommendations: dict[str, list[str]]

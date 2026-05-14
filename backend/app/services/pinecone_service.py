@@ -15,8 +15,11 @@ def retrieve_similar(
     if not settings.openai_api_key or not settings.pinecone_api_key:
         return []
 
-    from langchain_openai import OpenAIEmbeddings
-    from pinecone import Pinecone
+    try:
+        from langchain_openai import OpenAIEmbeddings
+        from pinecone import Pinecone
+    except ImportError:
+        return []
 
     embedding = OpenAIEmbeddings(model="text-embedding-3-small").embed_query(query)
     index = Pinecone(api_key=settings.pinecone_api_key).Index(settings.pinecone_index)

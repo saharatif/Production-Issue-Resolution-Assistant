@@ -113,6 +113,7 @@ async def technician_node(state: dict[str, Any]) -> dict[str, Any]:
     _log("technician.start", run_id=state["run_id"], line_id=state.get("line_id"))
 
     result = None
+    llm_used = False
 
     if settings.openai_api_key:
         try:
@@ -149,6 +150,7 @@ async def technician_node(state: dict[str, Any]) -> dict[str, Any]:
                 [SystemMessage(content=SYSTEM_PROMPT), HumanMessage(content=user_msg)],
             )
             result = parse_json_response(raw)
+            llm_used = True
         except Exception as exc:
             _log("technician.llm_error", run_id=state["run_id"], error=str(exc))
             result = None
@@ -164,7 +166,7 @@ async def technician_node(state: dict[str, Any]) -> dict[str, Any]:
     )
     result["pdf_path"] = pdf_path
 
-    _log("technician.done", run_id=state["run_id"], pdf_path=pdf_path, used_llm=settings.openai_api_key != "")
+    _log("technician.done", run_id=state["run_id"], pdf_path=pdf_path, used_llm=llm_used)
     return {
         **state,
         "technician_result": result,

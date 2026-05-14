@@ -65,7 +65,7 @@ def initial_state(payload: dict[str, Any]) -> ManufacturingIssueState:
         "retrieved_context": None,
         "investigator_result": None,
         "technician_result": None,
-        "approval_status": "pending",
+        "approval_status": "not_required",
         "final_report_path": None,
         "has_anomaly": False,
     }
