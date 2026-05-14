@@ -40,6 +40,62 @@ def _flatten_list(items: list[Any]) -> str:
     return "\n".join(f"- {item}" for item in items) if items else "- None"
 
 
+def _fmt_shift_handoff(note: dict[str, Any]) -> str:
+    if not note:
+        return "No shift handoff note available."
+    lines = [
+        f"Title: {note.get('title', '')}",
+        f"Summary: {note.get('summary', '')}",
+        f"Current Status: {note.get('current_status', '')}",
+        "",
+        "Actions Completed:",
+        _flatten_list(note.get("actions_completed", [])),
+        "",
+        "Open Actions:",
+        _flatten_list(note.get("open_actions", [])),
+    ]
+    return "\n".join(lines)
+
+
+def _fmt_maintenance_request(req: dict[str, Any]) -> str:
+    if not req:
+        return "No maintenance request available."
+    return "\n".join([
+        f"Priority:  {req.get('priority', '')}",
+        f"Asset:     {req.get('asset', '')}",
+        f"Line:      {req.get('line_id', '')}",
+        f"Request:   {req.get('request', '')}",
+        f"Reason:    {req.get('reason', '')}",
+    ])
+
+
+def _fmt_corrective_action_plan(cap: dict[str, Any]) -> str:
+    if not cap:
+        return "No corrective action plan available."
+    return "\n".join([
+        f"Problem:              {cap.get('problem', '')}",
+        f"Containment:          {cap.get('containment', '')}",
+        f"Root Cause Analysis:  {cap.get('root_cause_analysis', '')}",
+        f"Corrective Action:    {cap.get('corrective_action', '')}",
+        f"Preventive Action:    {cap.get('preventive_action', '')}",
+    ])
+
+
+def _fmt_recommendations(recs: dict[str, Any]) -> str:
+    if not recs:
+        return "No recommendations available."
+    sections = []
+    labels = {
+        "stabilize": "Stabilize (Act Now)",
+        "investigate": "Investigate (This Shift)",
+        "prevent_recurrence": "Prevent Recurrence (Days / Weeks)",
+    }
+    for key, label in labels.items():
+        items = recs.get(key, [])
+        sections.append(f"{label}:\n{_flatten_list(items)}")
+    return "\n\n".join(sections)
+
+
 def _fallback_lines(
     run_id: str,
     scanner_result: dict[str, Any],
@@ -50,10 +106,10 @@ def _fallback_lines(
         f"Verdict: {investigator.get('verdict', 'Investigate')}",
         f"Detected anomalies: {', '.join(scanner_result.get('anomaly_type', []))}",
         f"Scanner details: {'; '.join(scanner_result.get('details', []))}",
-        f"Recommendations: {investigator.get('recommendations', {})}",
-        f"Shift handoff: {technician.get('shift_handoff_note', {})}",
-        f"Maintenance request: {technician.get('maintenance_request', {})}",
-        f"Corrective action plan: {technician.get('corrective_action_plan', {})}",
+        f"Recommendations: {_fmt_recommendations(investigator.get('recommendations', {}))}",
+        f"Shift handoff: {_fmt_shift_handoff(technician.get('shift_handoff_note', {}))}",
+        f"Maintenance request: {_fmt_maintenance_request(technician.get('maintenance_request', {}))}",
+        f"Corrective action plan: {_fmt_corrective_action_plan(technician.get('corrective_action_plan', {}))}",
         f"Compliance references: {investigator.get('compliance_reference', [])}",
     ]
 
@@ -115,10 +171,10 @@ def generate_action_plan_pdf(
                     ]
                 ),
             ),
-            ("Recommendations", str(investigator.get("recommendations", {}))),
-            ("Shift Handoff Note", str(technician.get("shift_handoff_note", {}))),
-            ("Maintenance Request", str(technician.get("maintenance_request", {}))),
-            ("Corrective Action Plan", str(technician.get("corrective_action_plan", {}))),
+            ("Recommendations", _fmt_recommendations(investigator.get("recommendations", {}))),
+            ("Shift Handoff Note", _fmt_shift_handoff(technician.get("shift_handoff_note", {}))),
+            ("Maintenance Request", _fmt_maintenance_request(technician.get("maintenance_request", {}))),
+            ("Corrective Action Plan", _fmt_corrective_action_plan(technician.get("corrective_action_plan", {}))),
             ("Compliance References", _flatten_list(investigator.get("compliance_reference", []))),
         ]
 

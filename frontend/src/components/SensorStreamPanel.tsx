@@ -1,3 +1,5 @@
+import { useEffect, useRef } from "react";
+
 import type { SensorReading } from "@/hooks/useSensorStream";
 import { cn } from "@/lib/utils";
 
@@ -25,6 +27,15 @@ function formatTime(timestamp: string) {
 }
 
 export function SensorStreamPanel({ readings }: SensorStreamPanelProps) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  // scroll to top whenever a new batch prepends to the list
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = 0;
+    }
+  }, [readings.length]);
+
   return (
     <section className="overflow-hidden rounded-md border border-border bg-white">
       <div className="flex items-center justify-between border-b border-border px-4 py-3">
@@ -32,9 +43,10 @@ export function SensorStreamPanel({ readings }: SensorStreamPanelProps) {
         <span className="text-sm text-muted-foreground">{readings.length} buffered</span>
       </div>
 
-      <div className="overflow-x-auto">
+      {/* horizontal + vertical scroll container */}
+      <div ref={scrollRef} className="h-80 overflow-x-auto overflow-y-auto">
         <table className="w-full min-w-[860px] border-collapse text-left text-sm">
-          <thead className="bg-slate-100 text-xs uppercase tracking-normal text-muted-foreground">
+          <thead className="sticky top-0 z-10 bg-slate-100 text-xs uppercase tracking-normal text-muted-foreground">
             <tr>
               <th className="px-4 py-3 font-semibold">Timestamp</th>
               <th className="px-4 py-3 font-semibold">Line</th>
