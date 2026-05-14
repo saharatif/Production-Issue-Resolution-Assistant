@@ -18,7 +18,7 @@
     "line_id": "LINE-C",
     "trigger": "DATA_GAP",
     "expected_anomaly_types": ["DATA_GAP"],
-    "expected_verdict": "Stabilize"
+    "expected_verdict": "Investigate"
   },
   {
     "scenario": "high_vibration",

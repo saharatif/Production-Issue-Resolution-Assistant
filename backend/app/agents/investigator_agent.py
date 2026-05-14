@@ -72,10 +72,15 @@ Required schema:
 Rules:
 - confidence_breakdown values must sum to exactly 1.0
 - confidence is calculated by you from the scanner anomaly strength and KB evidence quality
-- Use "Stabilize" for HIGH or CRITICAL severity; "Investigate" for MEDIUM; "Prevent Recurrence" for recurring patterns
+- Do not use "Stabilize" merely because severity is HIGH or CRITICAL.
+- Use "Stabilize" only when immediate operational containment is needed to protect production, equipment, or people.
+- Use "Investigate" for missing data, sensor integrity concerns, and warning-level vibration/output anomalies.
+- Use "Prevent Recurrence" when the incident strongly matches prior history and the main recommendation is a systemic fix.
+- Follow the suggested verdict guidance unless the evidence clearly supports a different verdict.
 - Address ALL affected lines and machines listed under "All affected lines and machines" — do not focus on just one
 - Every recommendation and evidence item must be specific to the anomalies detected — no generic text
 - Reference machine IDs, line IDs, and sensor values from the input where relevant
+- If the KB context contains a prior incident on the same line/machine with matching anomaly type, historical_similarity should be greater than 0.
 """
 
 
@@ -121,16 +126,42 @@ def _primary_hypothesis(scanner_result: dict[str, Any]) -> str:
     return "Production conditions moved outside expected operating thresholds."
 
 
+def _suggested_verdict(scanner_result: dict[str, Any], retrieved_context: list[dict[str, Any]]) -> str:
+    anomaly_types = set(scanner_result.get("anomaly_type", []))
+    context_text = " ".join(item["text"].lower() for item in retrieved_context)
+
+    if "DATA_GAP" in anomaly_types:
+        return "Investigate"
+    if "HIGH_VIBRATION" in anomaly_types and scanner_result.get("severity") != "CRITICAL":
+        return "Investigate"
+    if "LOW_PRESSURE" in anomaly_types and "prior" in context_text and "low-pressure" in context_text:
+        return "Prevent Recurrence"
+    if "LOW_PRESSURE" in anomaly_types or "TEMPERATURE_SPIKE" in anomaly_types:
+        return "Stabilize"
+    return "Investigate"
+
+
+def _fallback_breakdown(retrieved_context: list[dict[str, Any]]) -> dict[str, float]:
+    if retrieved_context:
+        return CONFIDENCE_BREAKDOWN
+    return {
+        "historical_similarity": 0.0,
+        "threshold_violation_strength": 0.45,
+        "maintenance_history_match": 0.0,
+        "data_completeness": 0.55,
+    }
+
+
 def _fallback_result(scanner_result: dict[str, Any], retrieved_context: list[dict[str, Any]]) -> dict[str, Any]:
     return {
         "analysis_source": "deterministic_fallback",
         "model": None,
-        "verdict": "Stabilize" if scanner_result.get("severity") in ("HIGH", "CRITICAL") else "Investigate",
+        "verdict": _suggested_verdict(scanner_result, retrieved_context),
         "root_cause_hypotheses": [
             {
                 "hypothesis": _primary_hypothesis(scanner_result),
                 "confidence": 0.86 if scanner_result.get("severity") == "CRITICAL" else 0.82,
-                "confidence_breakdown": CONFIDENCE_BREAKDOWN,
+                "confidence_breakdown": _fallback_breakdown(retrieved_context),
                 "supporting_evidence": [
                     *scanner_result.get("details", [])[:2],
                     *[item["text"] for item in retrieved_context[:2]],
@@ -160,7 +191,7 @@ def _fallback_result(scanner_result: dict[str, Any], retrieved_context: list[dic
 
 async def investigator_node(state: dict[str, Any]) -> dict[str, Any]:
     scanner_result = state["scanner_result"]
-    line_id = state.get("line_id", "")
+    line_id = scanner_result.get("line_id") or state.get("line_id", "")
     _log("investigator.start", run_id=state["run_id"], line_id=line_id)
 
     retrieved_context = _build_kb_context(line_id)
@@ -191,7 +222,8 @@ async def investigator_node(state: dict[str, Any]) -> dict[str, Any]:
                 f"Scanner anomaly report:\n{json.dumps(scanner_result, indent=2)}\n\n"
                 f"All affected lines and machines:\n{affected_summary}\n\n"
                 f"Problem statement: {state.get('problem_statement', 'Not provided')}\n\n"
-                f"Historical KB context (line {line_id}):\n{kb_text}"
+                f"Suggested verdict guidance: {_suggested_verdict(scanner_result, retrieved_context)}\n\n"
+                f"Historical KB context for scanner-detected line {line_id}:\n{kb_text}"
             )
 
             llm = ChatOpenAI(

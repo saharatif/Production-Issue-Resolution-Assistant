@@ -51,6 +51,13 @@ SCENARIO_TO_ANOMALY = {
     "output_drop": "OUTPUT_DROP",
 }
 
+SCENARIO_TO_LINE = {
+    "temp_spike": "LINE-A",
+    "data_gap": "LINE-C",
+    "high_vibration": "LINE-C",
+    "output_drop": "LINE-B",
+}
+
 
 @dataclass
 class SensorReading:
@@ -153,7 +160,8 @@ def generate_scenario_batch(scenario: str) -> list[dict[str, str | float | int |
         return generate_batch()
 
     batch = [_normal_reading(line) for line in LINES]
-    target = next((r for r in batch if r.line_id == "LINE-B"), batch[0])
+    target_line = SCENARIO_TO_LINE.get(scenario, "LINE-B")
+    target = next((r for r in batch if r.line_id == target_line), batch[0])
     _inject_anomaly(target, anomaly_tag)
     return [_public_dict(reading) for reading in batch]
 
