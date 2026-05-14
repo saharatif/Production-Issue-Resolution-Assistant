@@ -1,13 +1,61 @@
+# Project-specific
 .env
+.envrc
 .venv/
+venv/
+env/
+ENV/
 Production-Issue-Resolution-Assistant/
-__pycache__/
-.pytest_cache/
-node_modules/
-dist/
-.DS_Store
 backend/app/reports/*.pdf
 reports/
-*.tsbuildinfo
 frontend/vite.config.js
 frontend/vite.config.d.ts
+
+# Python
+__pycache__/
+*.py[codz]
+*$py.class
+*.so
+.Python
+build/
+dist/
+*.egg-info/
+*.egg
+MANIFEST
+.eggs/
+sdist/
+wheels/
+
+# Testing / coverage
+.pytest_cache/
+.tox/
+.nox/
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+*.cover
+.hypothesis/
+
+# Type checkers
+.mypy_cache/
+.dmypy.json
+dmypy.json
+.pyre/
+.pytype/
+
+# Tooling
+.ruff_cache/
+.pdm-python
+.pdm-build/
+
+# Node / frontend
+node_modules/
+dist/
+*.tsbuildinfo
+
+# Misc
+.DS_Store
+*.log
+.idea/
+.vscode/
