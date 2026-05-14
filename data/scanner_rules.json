@@ -1,0 +1,48 @@
+{
+  "rules": [
+    {
+      "metric": "temperature_c",
+      "condition": ">",
+      "threshold": 90,
+      "critical_threshold": 150,
+      "severity": "HIGH",
+      "anomaly_type": "TEMPERATURE_SPIKE"
+    },
+    {
+      "metric": "pressure_bar",
+      "condition": "<",
+      "threshold": 4.8,
+      "critical_threshold": 3.5,
+      "severity": "HIGH",
+      "anomaly_type": "LOW_PRESSURE"
+    },
+    {
+      "metric": "vibration_mm_s",
+      "condition": ">",
+      "threshold": 4.0,
+      "critical_threshold": 8.0,
+      "severity": "MEDIUM",
+      "anomaly_type": "HIGH_VIBRATION"
+    },
+    {
+      "metric": "output_units_per_hour",
+      "condition": "<",
+      "threshold": 700,
+      "critical_threshold": 500,
+      "severity": "MEDIUM",
+      "anomaly_type": "OUTPUT_DROP"
+    },
+    {
+      "metric": "pressure_bar",
+      "condition": "is_null",
+      "severity": "HIGH",
+      "anomaly_type": "DATA_GAP"
+    },
+    {
+      "metric": "temperature_c",
+      "condition": "is_null",
+      "severity": "HIGH",
+      "anomaly_type": "DATA_GAP"
+    }
+  ]
+}

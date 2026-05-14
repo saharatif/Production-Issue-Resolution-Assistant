@@ -1,0 +1,13 @@
+.env
+.venv/
+Production-Issue-Resolution-Assistant/
+__pycache__/
+.pytest_cache/
+node_modules/
+dist/
+.DS_Store
+backend/app/reports/*.pdf
+reports/
+*.tsbuildinfo
+frontend/vite.config.js
+frontend/vite.config.d.ts

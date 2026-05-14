@@ -1,0 +1,37 @@
+[
+  {
+    "scenario": "pressure_drop",
+    "line_id": "LINE-B",
+    "trigger": "demo_scenario_line_b_pressure_drop",
+    "expected_anomaly_types": ["LOW_PRESSURE"],
+    "expected_verdict": "Stabilize"
+  },
+  {
+    "scenario": "temp_spike",
+    "line_id": "LINE-A",
+    "trigger": "TEMPERATURE_SPIKE",
+    "expected_anomaly_types": ["TEMPERATURE_SPIKE"],
+    "expected_verdict": "Stabilize"
+  },
+  {
+    "scenario": "data_gap",
+    "line_id": "LINE-C",
+    "trigger": "DATA_GAP",
+    "expected_anomaly_types": ["DATA_GAP"],
+    "expected_verdict": "Stabilize"
+  },
+  {
+    "scenario": "high_vibration",
+    "line_id": "LINE-C",
+    "trigger": "HIGH_VIBRATION",
+    "expected_anomaly_types": ["HIGH_VIBRATION"],
+    "expected_verdict": "Investigate"
+  },
+  {
+    "scenario": "live",
+    "line_id": "LINE-B",
+    "trigger": "Live stream with historical pressure context",
+    "expected_anomaly_types": ["LOW_PRESSURE", "OUTPUT_DROP"],
+    "expected_verdict": "Prevent Recurrence"
+  }
+]

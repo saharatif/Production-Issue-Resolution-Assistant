@@ -1,0 +1,17 @@
+fastapi
+uvicorn[standard]
+pydantic-settings
+python-dotenv
+asyncpg
+langchain
+langchain-openai
+langgraph
+langgraph-checkpoint-postgres
+openai
+pinecone
+tiktoken
+tenacity
+structlog
+reportlab
+pytest
+httpx
