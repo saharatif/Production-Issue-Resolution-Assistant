@@ -8,7 +8,9 @@ ENV/
 Production-Issue-Resolution-Assistant/
 backend/app/reports/*.pdf
 reports/
-generated_pdfs/
+generated_pdfs/*
+!generated_pdfs/.gitkeep
+!generated_pdfs/*.pdf
 frontend/vite.config.js
 frontend/vite.config.d.ts
 
