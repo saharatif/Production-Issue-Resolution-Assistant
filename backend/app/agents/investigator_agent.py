@@ -70,6 +70,7 @@ Required schema:
 Rules:
 - confidence_breakdown values must sum to exactly 1.0
 - Use "Stabilize" for HIGH or CRITICAL severity; "Investigate" for MEDIUM; "Prevent Recurrence" for recurring patterns
+- Address ALL affected lines and machines listed under "All affected lines and machines" — do not focus on just one
 - Every recommendation and evidence item must be specific to the anomalies detected — no generic text
 - Reference machine IDs, line IDs, and sensor values from the input where relevant
 """
@@ -164,8 +165,20 @@ async def investigator_node(state: dict[str, Any]) -> dict[str, Any]:
                 f"[{h['source']}] {h['text']}" for h in retrieved_context
             ) or "No historical KB entries matched this line."
 
+            affected = scanner_result.get("affected_lines", [])
+            affected_summary = (
+                "\n".join(
+                    f"  - {l['line_id']} / {l['machine_id']}: "
+                    f"{', '.join(l['anomaly_type'])} ({l['severity']}) — "
+                    + "; ".join(l["details"])
+                    for l in affected
+                )
+                if affected
+                else "  (no per-line breakdown available)"
+            )
             user_msg = (
                 f"Scanner anomaly report:\n{json.dumps(scanner_result, indent=2)}\n\n"
+                f"All affected lines and machines:\n{affected_summary}\n\n"
                 f"Problem statement: {state.get('problem_statement', 'Not provided')}\n\n"
                 f"Historical KB context (line {line_id}):\n{kb_text}"
             )

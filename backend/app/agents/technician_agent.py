@@ -43,9 +43,10 @@ Required schema:
 }
 
 Rules:
+- Cover ALL affected lines and machines listed under "All affected lines and machines" — do not focus on just one
 - Reference specific machine IDs, line IDs, metric values, and thresholds from the input
-- actions_completed and open_actions must each have at least 2 specific entries
-- corrective_action_plan.problem must include at least one actual sensor reading value
+- actions_completed and open_actions must each have at least one entry per affected line
+- corrective_action_plan.problem must list every affected line and its specific reading value
 - All text must be specific to THIS incident — no generic filler phrases
 """
 
@@ -118,8 +119,20 @@ async def technician_node(state: dict[str, Any]) -> dict[str, Any]:
             from langchain_openai import ChatOpenAI
             from langchain_core.messages import HumanMessage, SystemMessage
 
+            affected = scanner.get("affected_lines", [])
+            affected_summary = (
+                "\n".join(
+                    f"  - {l['line_id']} / {l['machine_id']}: "
+                    f"{', '.join(l['anomaly_type'])} ({l['severity']}) — "
+                    + "; ".join(l["details"])
+                    for l in affected
+                )
+                if affected
+                else "  (no per-line breakdown available)"
+            )
             user_msg = (
                 f"Scanner anomaly report:\n{json.dumps(scanner, indent=2)}\n\n"
+                f"All affected lines and machines:\n{affected_summary}\n\n"
                 f"Investigator findings:\n{json.dumps(investigator, indent=2)}\n\n"
                 f"Problem statement: {state.get('problem_statement', 'Not provided')}\n"
                 f"Plant: {state.get('plant_id', '')} | Line: {state.get('line_id', '')}"

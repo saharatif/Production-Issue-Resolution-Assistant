@@ -97,19 +97,50 @@ def classify_batch(batch: list[dict[str, Any]]) -> dict[str, Any]:
             "recommended_next_agent": None,
         }
 
-    selected_reading = anomalies[0][0]
-    anomaly_types = sorted({rule["anomaly_type"] for _, rule, _ in anomalies})
-    severity = max((severity for _, _, severity in anomalies), key=lambda item: SEVERITY_RANK[item])
-    details = [_detail_for(reading, rule) for reading, rule, _ in anomalies]
+    # group by line so every affected machine is represented
+    lines_seen: dict[str, dict[str, Any]] = {}
+    for reading, rule, sev in anomalies:
+        lid = reading.get("line_id", "UNKNOWN")
+        if lid not in lines_seen:
+            lines_seen[lid] = {
+                "line_id": lid,
+                "machine_id": reading.get("machine_id"),
+                "plant_id": reading.get("plant_id"),
+                "anomaly_types": set(),
+                "details": [],
+                "max_severity": sev,
+            }
+        lines_seen[lid]["anomaly_types"].add(rule["anomaly_type"])
+        lines_seen[lid]["details"].append(_detail_for(reading, rule))
+        if SEVERITY_RANK[sev] > SEVERITY_RANK[lines_seen[lid]["max_severity"]]:
+            lines_seen[lid]["max_severity"] = sev
+
+    affected_lines = [
+        {
+            "line_id": v["line_id"],
+            "machine_id": v["machine_id"],
+            "anomaly_type": sorted(v["anomaly_types"]),
+            "severity": v["max_severity"],
+            "details": v["details"],
+        }
+        for v in lines_seen.values()
+    ]
+
+    # primary line = highest severity, then first encountered
+    primary = max(affected_lines, key=lambda x: SEVERITY_RANK[x["severity"]])
+    anomaly_types = sorted({t for line in affected_lines for t in line["anomaly_type"]})
+    severity = max((line["severity"] for line in affected_lines), key=lambda s: SEVERITY_RANK[s])
+    details = [d for line in affected_lines for d in line["details"]]
 
     return {
         "anomaly_detected": True,
-        "plant_id": selected_reading.get("plant_id"),
-        "line_id": selected_reading.get("line_id"),
-        "machine_id": selected_reading.get("machine_id"),
+        "plant_id": primary.get("machine_id") and lines_seen[primary["line_id"]]["plant_id"],
+        "line_id": primary["line_id"],
+        "machine_id": primary["machine_id"],
         "anomaly_type": anomaly_types,
         "severity": severity,
         "details": details,
+        "affected_lines": affected_lines,
         "recommended_next_agent": "Investigator Agent",
     }
 
