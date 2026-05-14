@@ -4,7 +4,6 @@ import { ActionPlanPanel } from "@/components/ActionPlanPanel";
 import { AgentPipelineStatus } from "@/components/AgentPipelineStatus";
 import { AlertCard } from "@/components/AlertCard";
 import { ApprovalGate } from "@/components/ApprovalGate";
-import { ConfidenceBar } from "@/components/ConfidenceBar";
 import { InvestigatorReport } from "@/components/InvestigatorReport";
 import { SensorStreamPanel } from "@/components/SensorStreamPanel";
 import { type DemoScenario, TriggerButton } from "@/components/TriggerButton";
@@ -12,13 +11,6 @@ import { Button } from "@/components/ui/button";
 import { useAgentPipeline } from "@/hooks/useAgentPipeline";
 import { useSensorStream } from "@/hooks/useSensorStream";
 import { reportPdfUrl } from "@/lib/api";
-
-const demoBreakdown = {
-  historical_similarity: 0.35,
-  threshold_violation_strength: 0.25,
-  maintenance_history_match: 0.25,
-  data_completeness: 0.15,
-};
 
 export default function App() {
   const [active, setActive] = useState(false);
@@ -89,17 +81,6 @@ export default function App() {
               >
                 Download PDF
               </a>
-            ) : null}
-            {!run ? (
-              <div className="rounded-md border border-border bg-white p-4">
-                <div className="mb-4">
-                  <h2 className="text-base font-semibold">Confidence Preview</h2>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    Baseline scoring inputs for the first agent pipeline handoff.
-                  </p>
-                </div>
-                <ConfidenceBar breakdown={demoBreakdown} />
-              </div>
             ) : null}
           </aside>
         </div>
